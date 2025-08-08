@@ -1,47 +1,23 @@
 <?php
 defined('B_PROLOG_INCLUDED') || die;
 
-/** @var array $arResult */
-$settings = $arResult['userField']['SETTINGS'];
-$value = $arResult['value'];
-echo "This file is part of the pollution degree field component.5";
+/**
+ * @var array $arResult
+ * @var PollutionDegreeFieldComponent $component
+ */
+
+$settings = $component->getSettings();
+$value = $component->getValue();
 ?>
 
-<div class="pollution-view-container">
-    <div class="pollution-view-field">
-        <span class="pollution-view-label">
-            <?= htmlspecialcharsbx($settings['AREA_LABEL'] ?? 'Площадь') ?>:
-        </span>
-        <span class="pollution-view-value">
-            <?= htmlspecialcharsbx($value['AREA'] ?? 0) ?> м²
-        </span>
-    </div>
-
-    <div class="pollution-view-field">
-        <span class="pollution-view-label">
-            <?= htmlspecialcharsbx($settings['DEGREE_LABEL'] ?? 'Степень') ?>:
-        </span>
-        <span class="pollution-view-value">
-            <?= htmlspecialcharsbx($value['DEGREE'] ?? 0) ?>%
-        </span>
-    </div>
+<div class="pollution-degree-view" style="display: inline-flex; gap: 15px; align-items: center;">
+    <span class="pollution-area" style="display: flex; align-items: center; gap: 3px;">
+        <strong><?= htmlspecialchars($settings['AREA_LABEL']) ?>:</strong>
+        <span style="color: #0078d4; font-weight: 500;"><?= $value['AREA'] ?> м²</span>
+    </span>
+    
+    <span class="pollution-degree" style="display: flex; align-items: center; gap: 3px;">
+        <strong><?= htmlspecialchars($settings['DEGREE_LABEL']) ?>:</strong>
+        <span style="color: #d83b01; font-weight: 500;"><?= $value['DEGREE'] ?></span>
+    </span>
 </div>
-
-<style>
-.pollution-view-container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.pollution-view-field {
-    display: flex;
-    gap: 10px;
-}
-.pollution-view-label {
-    font-weight: bold;
-    min-width: 100px;
-}
-.pollution-view-value {
-    color: #2a5885;
-}
-</style>

@@ -5,13 +5,20 @@ use Bitrix\Main\Config\Option;
 use Bitrix\Main\EventManager;
 use Bitrix\Main\IO\Path;
 
-CopyDirFiles(
-    Path::combine(__DIR__, '/../components/b24.academy/pollution.degree.field'),
-    Path::convertRelativeToAbsolute('/local/components/b24.academy/pollution.degree.field/'),
-    true,
-    true
-);
+// Копируем компоненты в правильную директорию
+$componentSource = Path::combine(__DIR__, '/../components/b24.academy/pollution.degree.field');
+$componentDestination = Path::convertRelativeToAbsolute('/bitrix/components/b24.academy/pollution.degree.field/');
 
+if (is_dir($componentSource)) {
+    CopyDirFiles(
+        $componentSource,
+        $componentDestination,
+        true,
+        true
+    );
+}
+
+// Регистрируем обработчик типа поля
 $eventManager = EventManager::getInstance();
 $eventManager->registerEventHandlerCompatible(
     'main',
