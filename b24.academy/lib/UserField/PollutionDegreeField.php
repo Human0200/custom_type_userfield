@@ -70,7 +70,7 @@ class PollutionDegreeField extends BaseType
     }
 
     /**
-     * Обработка значения после получения из БД - ИСПРАВЛЕНО
+     * Обработка значения после получения из БД
      */
     public static function onAfterFetch($userField, $value)
     {

@@ -7,17 +7,18 @@ defined('B_PROLOG_INCLUDED') || die;
  */
 
 $settings = $component->getSettings();
-$value = $component->getValue();
-?>
+$value = $component->getProcessedValue();
 
-<div class="pollution-degree-view" style="display: inline-flex; gap: 15px; align-items: center;">
+$html = '<div class="pollution-degree-view" style="display: inline-flex; gap: 15px; align-items: center;">
     <span class="pollution-area" style="display: flex; align-items: center; gap: 3px;">
-        <strong><?= htmlspecialchars($settings['AREA_LABEL']) ?>:</strong>
-        <span style="color: #0078d4; font-weight: 500;"><?= $value['AREA'] ?> м²</span>
+        <strong>' . htmlspecialchars($settings['AREA_LABEL']) . ':</strong>
+        <span style="color: #0078d4; font-weight: 500;">' . $value['AREA'] . ' м²</span>
     </span>
     
     <span class="pollution-degree" style="display: flex; align-items: center; gap: 3px;">
-        <strong><?= htmlspecialchars($settings['DEGREE_LABEL']) ?>:</strong>
-        <span style="color: #d83b01; font-weight: 500;"><?= $value['DEGREE'] ?></span>
+        <strong>' . htmlspecialchars($settings['DEGREE_LABEL']) . ':</strong>
+        <span style="color: #d83b01; font-weight: 500;">' . $value['DEGREE'] . '</span>
     </span>
-</div>
+</div>';
+
+print $component->getHtmlBuilder()->wrapSingleField($html);
