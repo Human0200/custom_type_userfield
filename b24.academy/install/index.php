@@ -31,4 +31,60 @@ class b24_academy extends CModule
         $this->PARTNER_NAME = Loc::getMessage('B24_ACADEMY.PARTNER_NAME');
         $this->PARTNER_URI = Loc::getMessage('B24_ACADEMY.PARTNER_URI');
     }
+
+    function DoInstall()
+    {
+        ModuleManager::registerModule($this->MODULE_ID);
+        $this->InstallEvents();
+        $this->InstallFiles();
+    }
+
+    function DoUninstall()
+    {
+        $this->UnInstallEvents();
+        $this->UnInstallFiles();
+        ModuleManager::unRegisterModule($this->MODULE_ID);
+    }
+
+    function InstallEvents()
+    {
+        $eventManager = EventManager::getInstance();
+        $eventManager->registerEventHandlerCompatible(
+            'main',
+            'OnUserTypeBuildList',
+            $this->MODULE_ID,
+            'B24\Academy\UserField\PollutionDegreeField',
+            'getUserTypeDescription'
+        );
+    }
+
+    function UnInstallEvents()
+    {
+        $eventManager = EventManager::getInstance();
+        $eventManager->unRegisterEventHandler(
+            'main',
+            'OnUserTypeBuildList',
+            $this->MODULE_ID,
+            'B24\Academy\UserField\PollutionDegreeField',
+            'getUserTypeDescription'
+        );
+    }
+
+    function InstallFiles()
+    {
+        CopyDirFiles(
+            __DIR__ . '/../../../../bitrix/components/b24.academy/pollution.degree.field',
+            $_SERVER['DOCUMENT_ROOT'] . '/local/components/',
+            true,
+            true
+        );
+    }
+
+    function UnInstallFiles()
+    {
+        DeleteDirFiles(
+            __DIR__ . '/components/',
+            $_SERVER['DOCUMENT_ROOT'] . '/local/components/'
+        );
+    }
 }
