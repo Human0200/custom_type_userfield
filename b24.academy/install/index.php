@@ -72,19 +72,11 @@ class b24_academy extends CModule
 
     function InstallFiles()
     {
-        CopyDirFiles(
-            __DIR__ . '/components/',
-            $_SERVER['DOCUMENT_ROOT'] . '/local/components/',
-            true,
-            true
-        );
+        return true;
     }
 
     function UnInstallFiles()
     {
-        DeleteDirFiles(
-            __DIR__ . '/components/',
-            $_SERVER['DOCUMENT_ROOT'] . '/local/components/'
-        );
+        return true;
     }
 }

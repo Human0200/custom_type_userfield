@@ -1,5 +1,4 @@
 <?php
-
 namespace B24\Academy\UserField;
 
 use Bitrix\Main\Localization\Loc;
@@ -8,215 +7,329 @@ use Bitrix\Main\UserField\Types\BaseType;
 class PollutionDegreeField extends BaseType
 {
     public const USER_TYPE_ID = 'pollution_degree';
-    public const RENDER_COMPONENT = 'b24.academy:pollution.degree.field';
 
-    protected static function getDescription(): array
+    /**
+     * Возвращает описание типа поля
+     */
+    public static function getUserTypeDescription(): array
     {
         return [
-            'DESCRIPTION' => Loc::getMessage('B24_ACADEMY.UFTYPE_POLLUTION_DEGREE_DESCRIPTION'),
-            'BASE_TYPE' => \CUserTypeManager::BASE_TYPE_STRING,
+            'USER_TYPE_ID' => static::USER_TYPE_ID,
+            'CLASS_NAME' => static::class,
+            'DESCRIPTION' => Loc::getMessage('USER_TYPE_POLLUTION_DEGREE_DESCRIPTION') ?: 'Степень загрязнения (уровень и источник)',
+            'BASE_TYPE' => 'string',
+            'VIEW_CALLBACK' => [static::class, 'getPublicView'],
+            'EDIT_CALLBACK' => [static::class, 'getPublicEdit'],
         ];
     }
 
+    /**
+     * Возвращает тип столбца в БД
+     */
     public static function getDbColumnType(): string
     {
-        return 'text';
+        return 'varchar(255)';
     }
 
-public static function prepareSettings($userField): array
-{
-    if (!is_array($userField)) {
-        $userField = [];
-    }
-    
-    if (!isset($userField['SETTINGS']) || !is_array($userField['SETTINGS'])) {
-        $userField['SETTINGS'] = [];
-    }
-
-    return [
-        'AREA_LABEL' => $userField['SETTINGS']['AREA_LABEL'] ?? 'Площадь (м²)',
-        'DEGREE_LABEL' => $userField['SETTINGS']['DEGREE_LABEL'] ?? 'Степень загрязнения',
-        'SHOW_IN_LIST' => $userField['SETTINGS']['SHOW_IN_LIST'] ?? 'Y',
-        'AREA_MIN' => (float)($userField['SETTINGS']['AREA_MIN'] ?? 0),
-        'AREA_MAX' => (float)($userField['SETTINGS']['AREA_MAX'] ?? 999999),
-        'DEGREE_MIN' => (float)($userField['SETTINGS']['DEGREE_MIN'] ?? 0),
-        'DEGREE_MAX' => (float)($userField['SETTINGS']['DEGREE_MAX'] ?? 100),
-    ];
-}
-
-    public static function onBeforeSave(array $userField, $value)
+    /**
+     * Поддерживается ли обязательность поля
+     */
+    public static function isMandatorySupported(): bool
     {
-        if (is_array($value)) {
-            $area = (float)($value['AREA'] ?? 0);
-            $degree = (float)($value['DEGREE'] ?? 0);
-            
-            $settings = static::prepareSettings($userField);
-            
-            $area = max($settings['AREA_MIN'], min($settings['AREA_MAX'], $area));
-            $degree = max($settings['DEGREE_MIN'], min($settings['DEGREE_MAX'], $degree));
-            
-            return json_encode([
-                'area' => $area,
-                'degree' => $degree
-            ]);
+        return true;
+    }
+
+    /**
+     * Поддерживается ли множественность
+     */
+    public static function isMultiplicitySupported(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Возвращает значение по умолчанию
+     */
+    public static function getDefaultValue(array $userField, array $additionalParameters = []): string
+    {
+        return ',';
+    }
+
+    /**
+     * Возвращает HTML для отображения поля
+     */
+    public static function renderField(array $userField, ?array $additionalParameters = []): string
+    {
+        return static::renderEdit($userField, $additionalParameters);
+    }
+
+    /**
+     * Возвращает HTML для просмотра поля
+     */
+    public static function renderView(array $userField, ?array $additionalParameters = []): string
+    {
+        $value = static::extractValue($userField, $additionalParameters);
+        $parsedValue = static::parseValue($value);
+        
+        return '<div class="pollution-degree-view" style="display: flex; gap: 10px;">' .
+               '<span class="pollution-level"><strong>Уровень:</strong> ' . htmlspecialchars($parsedValue['level']) . '</span>' .
+               '<span class="pollution-source"><strong>Источник:</strong> ' . htmlspecialchars($parsedValue['source']) . '</span>' .
+               '</div>';
+    }
+
+    /**
+     * Возвращает HTML для редактирования поля
+     */
+    public static function renderEdit(array $userField, ?array $additionalParameters = []): string
+    {
+        $fieldName = static::extractFieldName($userField, $additionalParameters);
+        $value = static::extractValue($userField, $additionalParameters);
+        $required = ($userField['MANDATORY'] === 'Y');
+        
+        if (empty($value)) {
+            $value = static::getDefaultValue($userField, $additionalParameters ?: []);
         }
         
-        return $value;
-    }
-
-    public static function onAfterFetch(array $userField, $value)
-    {
-        if (!empty($value)) {
-            $data = json_decode($value, true);
-            if (is_array($data)) {
-                return [
-                    'AREA' => (float)($data['area'] ?? 0),
-                    'DEGREE' => (float)($data['degree'] ?? 0),
-                ];
+        $parsedValue = static::parseValue($value);
+        $fieldId = 'pollution_' . md5($fieldName);
+        
+        $html = '<div class="pollution-degree-edit" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">';
+        
+        // Поле для уровня загрязнения
+        $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
+        $html .= '<label for="' . $fieldId . '_level" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Уровень загрязнения:</label>';
+        $html .= '<input type="text" 
+                         id="' . $fieldId . '_level" 
+                         class="pollution-level-input" 
+                         style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
+                         value="' . htmlspecialchars($parsedValue['level']) . '"
+                         placeholder="Введите уровень"
+                         ' . ($required ? 'required' : '') . '>';
+        $html .= '</div>';
+        
+        // Поле для источника загрязнения
+        $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
+        $html .= '<label for="' . $fieldId . '_source" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Источник загрязнения:</label>';
+        $html .= '<input type="text" 
+                         id="' . $fieldId . '_source" 
+                         class="pollution-source-input" 
+                         style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
+                         value="' . htmlspecialchars($parsedValue['source']) . '"
+                         placeholder="Введите источник"
+                         ' . ($required ? 'required' : '') . '>';
+        $html .= '</div>';
+        
+        // Скрытое поле для отправки объединенного значения
+        $html .= '<input type="hidden" 
+                         name="' . htmlspecialchars($fieldName) . '" 
+                         id="' . $fieldId . '_combined" 
+                         value="' . htmlspecialchars($value) . '">';
+        
+        // JavaScript для объединения значений
+        $html .= '<script>
+        (function() {
+            var levelInput = document.getElementById("' . $fieldId . '_level");
+            var sourceInput = document.getElementById("' . $fieldId . '_source");
+            var hiddenInput = document.getElementById("' . $fieldId . '_combined");
+            
+            function updateCombinedValue() {
+                if (levelInput && sourceInput && hiddenInput) {
+                    var levelVal = levelInput.value.trim();
+                    var sourceVal = sourceInput.value.trim();
+                    hiddenInput.value = levelVal + "," + sourceVal;
+                }
             }
+            
+            if (levelInput) {
+                levelInput.addEventListener("input", updateCombinedValue);
+                levelInput.addEventListener("blur", updateCombinedValue);
+            }
+            if (sourceInput) {
+                sourceInput.addEventListener("input", updateCombinedValue);
+                sourceInput.addEventListener("blur", updateCombinedValue);
+            }
+        })();
+        </script>';
+        
+        $html .= '</div>';
+        
+        return $html;
+    }
+
+    /**
+     * Возвращает HTML для настроек поля
+     */
+    public static function renderSettings($userField, ?array $additionalParameters, $varsFromForm): string
+    {
+        return '<div class="pollution-degree-settings">
+                    <p>Поле "Степень загрязнения" состоит из двух текстовых полей:</p>
+                    <ul>
+                        <li><strong>Уровень загрязнения:</strong> свободный ввод текста</li>
+                        <li><strong>Источник загрязнения:</strong> свободный ввод текста</li>
+                    </ul>
+                    <p>В базе данных сохраняется как строка в формате: "уровень,источник"</p>
+                    <p><em>Пример:</em> "высокий,промышленные выбросы" → сохранится как "высокий,промышленные выбросы"</p>
+                </div>';
+    }
+
+    /**
+     * Возвращает HTML для формы редактирования
+     */
+    public static function renderEditForm(array $userField, ?array $additionalParameters): string
+    {
+        return static::renderEdit($userField, $additionalParameters);
+    }
+
+    /**
+     * Возвращает HTML для просмотра в админке
+     */
+    public static function renderAdminListView(array $userField, ?array $additionalParameters): string
+    {
+        return static::renderView($userField, $additionalParameters);
+    }
+
+    /**
+     * Возвращает HTML для редактирования в списке админки
+     */
+    public static function renderAdminListEdit(array $userField, ?array $additionalParameters): string
+    {
+        return static::renderEdit($userField, $additionalParameters);
+    }
+
+    /**
+     * Возвращает HTML для фильтра
+     */
+    public static function renderFilter(array $userField, ?array $additionalParameters): string
+    {
+        $fieldName = static::extractFieldName($userField, $additionalParameters);
+        $value = $additionalParameters['VALUE'] ?? '';
+        $parsedValue = static::parseValue($value);
+        $fieldId = 'filter_pollution_' . md5($fieldName);
+        
+        $html = '<div class="pollution-degree-filter" style="display: flex; gap: 10px; align-items: center;">';
+        
+        // Фильтр по уровню
+        $html .= '<div style="display: flex; flex-direction: column;">';
+        $html .= '<label for="' . $fieldId . '_level" style="font-size: 11px; margin-bottom: 2px;">Уровень:</label>';
+        $html .= '<input type="text" 
+                         id="' . $fieldId . '_level"
+                         name="' . htmlspecialchars($fieldName) . '[level]" 
+                         style="width: 100px; padding: 3px; font-size: 12px;"
+                         value="' . htmlspecialchars($parsedValue['level']) . '"
+                         placeholder="Уровень">';
+        $html .= '</div>';
+        
+        // Фильтр по источнику
+        $html .= '<div style="display: flex; flex-direction: column;">';
+        $html .= '<label for="' . $fieldId . '_source" style="font-size: 11px; margin-bottom: 2px;">Источник:</label>';
+        $html .= '<input type="text" 
+                         id="' . $fieldId . '_source"
+                         name="' . htmlspecialchars($fieldName) . '[source]" 
+                         style="width: 120px; padding: 3px; font-size: 12px;"
+                         value="' . htmlspecialchars($parsedValue['source']) . '"
+                         placeholder="Источник">';
+        $html .= '</div>';
+        
+        $html .= '</div>';
+        
+        return $html;
+    }
+
+    /**
+     * Возвращает текстовое представление
+     */
+    public static function renderText(array $userField): string
+    {
+        $value = $userField['VALUE'] ?? '';
+        $parsedValue = static::parseValue($value);
+        
+        if (empty($parsedValue['level']) && empty($parsedValue['source'])) {
+            return '';
         }
         
+        $parts = [];
+        if (!empty($parsedValue['level'])) {
+            $parts[] = $parsedValue['level'];
+        }
+        if (!empty($parsedValue['source'])) {
+            $parts[] = '(' . $parsedValue['source'] . ')';
+        }
+        
+        return implode(' ', $parts);
+    }
+
+    // Алиасы методов
+    public static function getSettingsHtml($userField, ?array $additionalParameters, $varsFromForm): string
+    {
+        return static::renderSettings($userField, $additionalParameters, $varsFromForm);
+    }
+
+    public static function getPublicView(array $userField, ?array $additionalParameters = []): string
+    {
+        return static::renderView($userField, $additionalParameters);
+    }
+
+    public static function getPublicEdit(array $userField, ?array $additionalParameters = []): string
+    {
+        return static::renderEdit($userField, $additionalParameters);
+    }
+
+    public static function getEditFormHtml(array $userField, ?array $additionalParameters): string
+    {
+        return static::renderEditForm($userField, $additionalParameters);
+    }
+
+    public static function getAdminListViewHtml(array $userField, ?array $additionalParameters): string
+    {
+        return static::renderAdminListView($userField, $additionalParameters);
+    }
+
+    public static function getAdminListEditHTML(array $userField, ?array $additionalParameters): string
+    {
+        return static::renderAdminListEdit($userField, $additionalParameters);
+    }
+
+    public static function getFilterHtml(array $userField, ?array $additionalParameters): string
+    {
+        return static::renderFilter($userField, $additionalParameters);
+    }
+
+    public static function getPublicText(array $userField): string
+    {
+        return static::renderText($userField);
+    }
+
+    // Вспомогательные методы
+
+    /**
+     * Разбирает строковое значение на компоненты
+     */
+    private static function parseValue(string $value): array
+    {
+        if (empty($value)) {
+            return ['level' => '', 'source' => ''];
+        }
+        
+        $parts = explode(',', $value, 2);
         return [
-            'AREA' => 0,
-            'DEGREE' => 0,
+            'level' => trim($parts[0] ?? ''),
+            'source' => trim($parts[1] ?? ''),
         ];
     }
 
-    public static function getDefaultValue(array $userField, array $additionalParameters = [])
+    /**
+     * Извлекает значение поля из параметров
+     */
+    private static function extractValue(array $userField, ?array $additionalParameters = []): string
     {
-        return json_encode([
-            'area' => 0,
-            'degree' => 0
-        ]);
+        return $additionalParameters['VALUE'] ?? $userField['VALUE'] ?? '';
     }
 
-public static function getAdminListViewHtml($userField, $additionalParameters): string
-{
-    $value = static::onAfterFetch($userField, $additionalParameters['VALUE']);
-    
-    return sprintf(
-        '<span title="Площадь: %s м², Степень: %s">%s м² / %s</span>',
-        $value['AREA'],
-        $value['DEGREE'],
-        $value['AREA'],
-        $value['DEGREE']
-    );
-}
-
-   public static function getAdminListEditHTML($userField, $additionalParameters): string
+    /**
+     * Извлекает имя поля из параметров
+     */
+    private static function extractFieldName(array $userField, ?array $additionalParameters = []): string
     {
-        $value = static::onAfterFetch($userField, $additionalParameters['VALUE']);
-        $settings = static::prepareSettings($userField);
-        $fieldName = $additionalParameters['NAME'];
-        
-        return sprintf('
-            <div style="display: flex; gap: 5px; align-items: center;">
-                <input type="number" 
-                       name="%s[AREA]" 
-                       value="%s" 
-                       step="0.01" 
-                       min="%s" 
-                       max="%s"
-                       placeholder="%s"
-                       style="width: 80px;">
-                <span>м²</span>
-                <input type="number" 
-                       name="%s[DEGREE]" 
-                       value="%s" 
-                       step="0.01" 
-                       min="%s" 
-                       max="%s"
-                       placeholder="%s"
-                       style="width: 60px;">
-            </div>',
-            $fieldName,
-            $value['AREA'],
-            $settings['AREA_MIN'],
-            $settings['AREA_MAX'],
-            $settings['AREA_LABEL'],
-            $fieldName,
-            $value['DEGREE'],
-            $settings['DEGREE_MIN'],
-            $settings['DEGREE_MAX'],
-            $settings['DEGREE_LABEL']
-        );
-    }
-
-public static function getSettingsHtml($userField, $additionalParameters, $varsFromForm): string
-{
-    // Приводим $userField к массиву, если это необходимо
-    if (!is_array($userField)) {
-        $userField = [];
-    }
-    
-    $settings = static::prepareSettings($userField);
-    $name = $additionalParameters['NAME'] ?? '';
-    
-    if ($varsFromForm) {
-        $settings['AREA_LABEL'] = $_REQUEST[$name]['AREA_LABEL'] ?? $settings['AREA_LABEL'];
-        $settings['DEGREE_LABEL'] = $_REQUEST[$name]['DEGREE_LABEL'] ?? $settings['DEGREE_LABEL'];
-        $settings['AREA_MIN'] = (float)($_REQUEST[$name]['AREA_MIN'] ?? $settings['AREA_MIN']);
-        $settings['AREA_MAX'] = (float)($_REQUEST[$name]['AREA_MAX'] ?? $settings['AREA_MAX']);
-        $settings['DEGREE_MIN'] = (float)($_REQUEST[$name]['DEGREE_MIN'] ?? $settings['DEGREE_MIN']);
-        $settings['DEGREE_MAX'] = (float)($_REQUEST[$name]['DEGREE_MAX'] ?? $settings['DEGREE_MAX']);
-    }
-    
-    return '
-    <tr>
-        <td>Подпись для площади:</td>
-        <td><input type="text" name="'.$name.'[AREA_LABEL]" value="'.htmlspecialchars($settings['AREA_LABEL']).'" size="30"></td>
-    </tr>
-    <tr>
-        <td>Подпись для степени:</td>
-        <td><input type="text" name="'.$name.'[DEGREE_LABEL]" value="'.htmlspecialchars($settings['DEGREE_LABEL']).'" size="30"></td>
-    </tr>
-    <tr>
-        <td>Минимальная площадь:</td>
-        <td><input type="number" name="'.$name.'[AREA_MIN]" value="'.$settings['AREA_MIN'].'" step="0.01"></td>
-    </tr>
-    <tr>
-        <td>Максимальная площадь:</td>
-        <td><input type="number" name="'.$name.'[AREA_MAX]" value="'.$settings['AREA_MAX'].'" step="0.01"></td>
-    </tr>
-    <tr>
-        <td>Минимальная степень:</td>
-        <td><input type="number" name="'.$name.'[DEGREE_MIN]" value="'.$settings['DEGREE_MIN'].'" step="0.01"></td>
-    </tr>
-    <tr>
-        <td>Максимальная степень:</td>
-        <td><input type="number" name="'.$name.'[DEGREE_MAX]" value="'.$settings['DEGREE_MAX'].'" step="0.01"></td>
-    </tr>';
-}
-
-    public static function formatValue(array $userField, $value): string
-    {
-        $data = static::onAfterFetch($userField, $value);
-        $settings = static::prepareSettings($userField);
-        
-        return sprintf(
-            '%s: %s м², %s: %s',
-            $settings['AREA_LABEL'],
-            $data['AREA'],
-            $settings['DEGREE_LABEL'],
-            $data['DEGREE']
-        );
-    }
-
-    public static function checkFields(array $userField, $value): array
-    {
-        $errors = [];
-        
-        if ($userField['MANDATORY'] === 'Y') {
-            $data = static::onAfterFetch($userField, $value);
-            
-            if ($data['AREA'] <= 0 && $data['DEGREE'] <= 0) {
-                $errors[] = [
-                    'id' => $userField['FIELD_NAME'],
-                    'text' => 'Поле "' . $userField['LIST_COLUMN_LABEL'] . '" обязательно для заполнения'
-                ];
-            }
-        }
-        
-        return $errors;
+        return $additionalParameters['NAME'] ?? $userField['FIELD_NAME'] ?? '';
     }
 }
