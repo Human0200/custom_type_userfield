@@ -1,4 +1,5 @@
 <?php
+
 namespace B24\Academy\UserField;
 
 use Bitrix\Main\Localization\Loc;
@@ -21,6 +22,115 @@ class PollutionDegreeField extends BaseType
             'VIEW_CALLBACK' => [static::class, 'getPublicView'],
             'EDIT_CALLBACK' => [static::class, 'getPublicEdit'],
         ];
+    }
+
+    /**
+     * Возвращает HTML для просмотра поля
+     */
+    public static function renderView(array $userField, ?array $additionalParameters = []): string
+    {
+        $value = static::extractValue($userField, $additionalParameters);
+        $parsedValue = static::parseValue($value);
+
+        return '<div class="pollution-degree-view" style="display: flex; gap: 10px;">' .
+            '<span class="pollution-level"><strong>Уровень:</strong> ' . htmlspecialchars($parsedValue['level']) . '</span>' .
+            '<span class="pollution-source"><strong>Источник:</strong> ' . htmlspecialchars($parsedValue['source']) . '</span>' .
+            '</div>';
+    }
+
+    /**
+     * Возвращает HTML для редактирования поля
+     */
+    public static function renderEdit(array $userField, ?array $additionalParameters = []): string
+    {
+        $fieldName = static::extractFieldName($userField, $additionalParameters);
+        $value = static::extractValue($userField, $additionalParameters);
+        $required = ($userField['MANDATORY'] === 'Y');
+
+        if (empty($value)) {
+            $value = static::getDefaultValue($userField, $additionalParameters ?: []);
+        }
+
+        $parsedValue = static::parseValue($value);
+        $fieldId = 'pollution_' . md5($fieldName);
+
+        $html = '<div class="pollution-degree-edit" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">';
+
+        // Поле для уровня загрязнения
+        $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
+        $html .= '<label for="' . $fieldId . '_level" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Уровень загрязнения:</label>';
+        $html .= '<input type="text" 
+                         id="' . $fieldId . '_level" 
+                         class="pollution-level-input" 
+                         style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
+                         value="' . htmlspecialchars($parsedValue['level']) . '"
+                         placeholder="Введите уровень"
+                         ' . ($required ? 'required' : '') . '>';
+        $html .= '</div>';
+
+        // Поле для источника загрязнения
+        $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
+        $html .= '<label for="' . $fieldId . '_source" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Источник загрязнения:</label>';
+        $html .= '<input type="text" 
+                         id="' . $fieldId . '_source" 
+                         class="pollution-source-input" 
+                         style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
+                         value="' . htmlspecialchars($parsedValue['source']) . '"
+                         placeholder="Введите источник"
+                         ' . ($required ? 'required' : '') . '>';
+        $html .= '</div>';
+
+        // Скрытое поле для отправки объединенного значения
+        $html .= '<input type="hidden" 
+                         name="' . htmlspecialchars($fieldName) . '" 
+                         id="' . $fieldId . '_combined" 
+                         value="' . htmlspecialchars($value) . '">';
+
+        // JavaScript для объединения значений
+        $html .= '<script>
+        (function() {
+            var levelInput = document.getElementById("' . $fieldId . '_level");
+            var sourceInput = document.getElementById("' . $fieldId . '_source");
+            var hiddenInput = document.getElementById("' . $fieldId . '_combined");
+            
+            function updateCombinedValue() {
+                if (levelInput && sourceInput && hiddenInput) {
+                    var levelVal = levelInput.value.trim();
+                    var sourceVal = sourceInput.value.trim();
+                    hiddenInput.value = levelVal + "," + sourceVal;
+                }
+            }
+            
+            if (levelInput) {
+                levelInput.addEventListener("input", updateCombinedValue);
+                levelInput.addEventListener("blur", updateCombinedValue);
+            }
+            if (sourceInput) {
+                sourceInput.addEventListener("input", updateCombinedValue);
+                sourceInput.addEventListener("blur", updateCombinedValue);
+            }
+        })();
+        </script>';
+
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /**
+     * Возвращает HTML для настроек поля
+     */
+    public static function renderSettings($userField, ?array $additionalParameters, $varsFromForm): string
+    {
+        return '<div class="pollution-degree-settings">
+                    <p>Поле "Степень загрязнения" состоит из двух текстовых полей:</p>
+                    <ul>
+                        <li><strong>Уровень загрязнения:</strong> свободный ввод текста</li>
+                        <li><strong>Источник загрязнения:</strong> свободный ввод текста</li>
+                    </ul>
+                    <p>В базе данных сохраняется как строка в формате: "уровень,источник"</p>
+                    <p><em>Пример:</em> "высокий,промышленные выбросы" → сохранится как "высокий,промышленные выбросы"</p>
+                </div>';
     }
 
     /**
@@ -64,115 +174,6 @@ class PollutionDegreeField extends BaseType
     }
 
     /**
-     * Возвращает HTML для просмотра поля
-     */
-    public static function renderView(array $userField, ?array $additionalParameters = []): string
-    {
-        $value = static::extractValue($userField, $additionalParameters);
-        $parsedValue = static::parseValue($value);
-        
-        return '<div class="pollution-degree-view" style="display: flex; gap: 10px;">' .
-               '<span class="pollution-level"><strong>Уровень:</strong> ' . htmlspecialchars($parsedValue['level']) . '</span>' .
-               '<span class="pollution-source"><strong>Источник:</strong> ' . htmlspecialchars($parsedValue['source']) . '</span>' .
-               '</div>';
-    }
-
-    /**
-     * Возвращает HTML для редактирования поля
-     */
-    public static function renderEdit(array $userField, ?array $additionalParameters = []): string
-    {
-        $fieldName = static::extractFieldName($userField, $additionalParameters);
-        $value = static::extractValue($userField, $additionalParameters);
-        $required = ($userField['MANDATORY'] === 'Y');
-        
-        if (empty($value)) {
-            $value = static::getDefaultValue($userField, $additionalParameters ?: []);
-        }
-        
-        $parsedValue = static::parseValue($value);
-        $fieldId = 'pollution_' . md5($fieldName);
-        
-        $html = '<div class="pollution-degree-edit" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">';
-        
-        // Поле для уровня загрязнения
-        $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
-        $html .= '<label for="' . $fieldId . '_level" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Уровень загрязнения:</label>';
-        $html .= '<input type="text" 
-                         id="' . $fieldId . '_level" 
-                         class="pollution-level-input" 
-                         style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
-                         value="' . htmlspecialchars($parsedValue['level']) . '"
-                         placeholder="Введите уровень"
-                         ' . ($required ? 'required' : '') . '>';
-        $html .= '</div>';
-        
-        // Поле для источника загрязнения
-        $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
-        $html .= '<label for="' . $fieldId . '_source" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Источник загрязнения:</label>';
-        $html .= '<input type="text" 
-                         id="' . $fieldId . '_source" 
-                         class="pollution-source-input" 
-                         style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
-                         value="' . htmlspecialchars($parsedValue['source']) . '"
-                         placeholder="Введите источник"
-                         ' . ($required ? 'required' : '') . '>';
-        $html .= '</div>';
-        
-        // Скрытое поле для отправки объединенного значения
-        $html .= '<input type="hidden" 
-                         name="' . htmlspecialchars($fieldName) . '" 
-                         id="' . $fieldId . '_combined" 
-                         value="' . htmlspecialchars($value) . '">';
-        
-        // JavaScript для объединения значений
-        $html .= '<script>
-        (function() {
-            var levelInput = document.getElementById("' . $fieldId . '_level");
-            var sourceInput = document.getElementById("' . $fieldId . '_source");
-            var hiddenInput = document.getElementById("' . $fieldId . '_combined");
-            
-            function updateCombinedValue() {
-                if (levelInput && sourceInput && hiddenInput) {
-                    var levelVal = levelInput.value.trim();
-                    var sourceVal = sourceInput.value.trim();
-                    hiddenInput.value = levelVal + "," + sourceVal;
-                }
-            }
-            
-            if (levelInput) {
-                levelInput.addEventListener("input", updateCombinedValue);
-                levelInput.addEventListener("blur", updateCombinedValue);
-            }
-            if (sourceInput) {
-                sourceInput.addEventListener("input", updateCombinedValue);
-                sourceInput.addEventListener("blur", updateCombinedValue);
-            }
-        })();
-        </script>';
-        
-        $html .= '</div>';
-        
-        return $html;
-    }
-
-    /**
-     * Возвращает HTML для настроек поля
-     */
-    public static function renderSettings($userField, ?array $additionalParameters, $varsFromForm): string
-    {
-        return '<div class="pollution-degree-settings">
-                    <p>Поле "Степень загрязнения" состоит из двух текстовых полей:</p>
-                    <ul>
-                        <li><strong>Уровень загрязнения:</strong> свободный ввод текста</li>
-                        <li><strong>Источник загрязнения:</strong> свободный ввод текста</li>
-                    </ul>
-                    <p>В базе данных сохраняется как строка в формате: "уровень,источник"</p>
-                    <p><em>Пример:</em> "высокий,промышленные выбросы" → сохранится как "высокий,промышленные выбросы"</p>
-                </div>';
-    }
-
-    /**
      * Возвращает HTML для формы редактирования
      */
     public static function renderEditForm(array $userField, ?array $additionalParameters): string
@@ -205,9 +206,9 @@ class PollutionDegreeField extends BaseType
         $value = $additionalParameters['VALUE'] ?? '';
         $parsedValue = static::parseValue($value);
         $fieldId = 'filter_pollution_' . md5($fieldName);
-        
+
         $html = '<div class="pollution-degree-filter" style="display: flex; gap: 10px; align-items: center;">';
-        
+
         // Фильтр по уровню
         $html .= '<div style="display: flex; flex-direction: column;">';
         $html .= '<label for="' . $fieldId . '_level" style="font-size: 11px; margin-bottom: 2px;">Уровень:</label>';
@@ -218,7 +219,7 @@ class PollutionDegreeField extends BaseType
                          value="' . htmlspecialchars($parsedValue['level']) . '"
                          placeholder="Уровень">';
         $html .= '</div>';
-        
+
         // Фильтр по источнику
         $html .= '<div style="display: flex; flex-direction: column;">';
         $html .= '<label for="' . $fieldId . '_source" style="font-size: 11px; margin-bottom: 2px;">Источник:</label>';
@@ -229,9 +230,9 @@ class PollutionDegreeField extends BaseType
                          value="' . htmlspecialchars($parsedValue['source']) . '"
                          placeholder="Источник">';
         $html .= '</div>';
-        
+
         $html .= '</div>';
-        
+
         return $html;
     }
 
@@ -242,11 +243,11 @@ class PollutionDegreeField extends BaseType
     {
         $value = $userField['VALUE'] ?? '';
         $parsedValue = static::parseValue($value);
-        
+
         if (empty($parsedValue['level']) && empty($parsedValue['source'])) {
             return '';
         }
-        
+
         $parts = [];
         if (!empty($parsedValue['level'])) {
             $parts[] = $parsedValue['level'];
@@ -254,7 +255,7 @@ class PollutionDegreeField extends BaseType
         if (!empty($parsedValue['source'])) {
             $parts[] = '(' . $parsedValue['source'] . ')';
         }
-        
+
         return implode(' ', $parts);
     }
 
@@ -309,7 +310,7 @@ class PollutionDegreeField extends BaseType
         if (empty($value)) {
             return ['level' => '', 'source' => ''];
         }
-        
+
         $parts = explode(',', $value, 2);
         return [
             'level' => trim($parts[0] ?? ''),
