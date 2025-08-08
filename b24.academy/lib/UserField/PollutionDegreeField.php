@@ -33,8 +33,8 @@ class PollutionDegreeField extends BaseType
         $parsedValue = static::parseValue($value);
 
         return '<div class="pollution-degree-view" style="display: flex; gap: 10px;">' .
-            '<span class="pollution-level"><strong>Уровень:</strong> ' . htmlspecialchars($parsedValue['level']) . '</span>' .
-            '<span class="pollution-source"><strong>Источник:</strong> ' . htmlspecialchars($parsedValue['source']) . '</span>' .
+            '<span class="pollution-level"><strong>Площадь:</strong> ' . htmlspecialchars($parsedValue['level']) . '</span>' .
+            '<span class="pollution-source"><strong>Коэффициент:</strong> ' . htmlspecialchars($parsedValue['source']) . '</span>' .
             '</div>';
     }
 
@@ -56,27 +56,27 @@ class PollutionDegreeField extends BaseType
 
         $html = '<div class="pollution-degree-edit" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">';
 
-        // Поле для уровня загрязнения
+        // Поле для площади загрязнения
         $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
-        $html .= '<label for="' . $fieldId . '_level" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Уровень загрязнения:</label>';
+        $html .= '<label for="' . $fieldId . '_level" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Площадь:</label>';
         $html .= '<input type="text" 
                          id="' . $fieldId . '_level" 
                          class="pollution-level-input" 
                          style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
                          value="' . htmlspecialchars($parsedValue['level']) . '"
-                         placeholder="Введите уровень"
+                         placeholder="Введите площадь"
                          ' . ($required ? 'required' : '') . '>';
         $html .= '</div>';
 
-        // Поле для источника загрязнения
+        // Поле для коэффициента загрязнения
         $html .= '<div style="display: flex; flex-direction: column; min-width: 150px;">';
-        $html .= '<label for="' . $fieldId . '_source" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Источник загрязнения:</label>';
+        $html .= '<label for="' . $fieldId . '_source" style="font-size: 12px; margin-bottom: 3px; font-weight: bold;">Коэффициент:</label>';
         $html .= '<input type="text" 
                          id="' . $fieldId . '_source" 
                          class="pollution-source-input" 
                          style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;" 
                          value="' . htmlspecialchars($parsedValue['source']) . '"
-                         placeholder="Введите источник"
+                         placeholder="Введите коэффициент"
                          ' . ($required ? 'required' : '') . '>';
         $html .= '</div>';
 
